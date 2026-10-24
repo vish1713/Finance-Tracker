@@ -1,6 +1,9 @@
 import { clearTokens, getAccessToken, getRefreshToken, setTokens } from './auth-storage';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+
+/** Full-page redirects bypass the Next router, so they must include the basePath themselves. */
+export const LOGIN_URL = `${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/login/`;
 
 export class ApiError extends Error {
   constructor(
@@ -84,7 +87,7 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
       res = await doFetch();
     } else {
       clearTokens();
-      if (typeof window !== 'undefined') window.location.href = '/login';
+      if (typeof window !== 'undefined') window.location.href = LOGIN_URL;
       throw new ApiError(401, 'Session expired');
     }
   }

@@ -1,0 +1,60 @@
+# Render Blueprint for the backend API + Redis, all on Render's free plan.
+# Postgres lives on Neon's free tier; paste its connection string as DATABASE_URL when prompted.
+# The frontend is deployed separately to GitHub Pages (.github/workflows/deploy-frontend.yml).
+# Region can't be changed after creation; keep both services and the Neon DB in the same region.
+
+services:
+  - type: web
+    name: finance-tracker-api
+    runtime: node
+    plan: free
+    region: oregon
+    # Free instances have no pre-deploy step, so migrations and the (idempotent) seed run during the build.
+    buildCommand: >-
+      npm ci --include=dev --workspace=backend &&
+      cd backend &&
+      npx prisma generate &&
+      npm run build &&
+      npx prisma migrate deploy &&
+      npx prisma db seed
+    startCommand: cd backend && node dist/main
+    buildFilter:
+      paths:
+        - backend/**
+        - package-lock.json
+        - render.yaml
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: REDIS_HOST
+        fromService:
+          type: keyvalue
+          name: finance-tracker-redis
+          property: host
+      - key: REDIS_PORT
+        fromService:
+          type: keyvalue
+          name: finance-tracker-redis
+          property: port
+      - key: CORS_ORIGIN
+        value: https://vish1713.github.io
+      # No SMTP provider configured; the mailer logs and skips sends.
+      - key: MAIL_ENABLED
+        value: "false"
+
+  - type: keyvalue
+    name: finance-tracker-redis
+    plan: free
+    region: oregon
+    # BullMQ requires keys never be evicted.
+    maxmemoryPolicy: noeviction
+    # Empty list = reachable only from other services in this Render account.
+    ipAllowList: []

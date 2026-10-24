@@ -2,7 +2,7 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createContext, useContext, useSyncExternalStore } from 'react';
-import { api } from './api-client';
+import { api, LOGIN_URL } from './api-client';
 import { clearTokens, getAccessToken } from './auth-storage';
 import type { User } from './types';
 
@@ -54,7 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     clearTokens();
     queryClient.clear();
     emitTokenChange();
-    if (typeof window !== 'undefined') window.location.href = '/login';
+    if (typeof window !== 'undefined') window.location.href = LOGIN_URL;
   };
 
   /** Call right after a login/register mutation stores fresh tokens, so the context picks them up immediately. */
